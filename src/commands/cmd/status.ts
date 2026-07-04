@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { performCommit } from './commit.js';
 import { findCommit } from '../../storage/commits.js';
 import { getConfig } from '../../storage/config.js';
 import { snapshotGuild } from '../../snapshotter/index.js';
@@ -33,10 +34,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
       const live = await snapshotGuild(interaction.guild!);
       const diff = diffCommits(head.roles, head.channels, live.roles, live.channels);
-      
+
       const summary = formatSummary(diff);
       const details = formatDetails(diff);
-      
+
       if (summary) {
         embed.addFields({ name: 'Changes Since Last Commit', value: summary, inline: false });
       }
@@ -52,45 +53,98 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     );
   }
 
-  await interaction.reply({ embeds: [embed] });
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('status_commit_btn')
+      .setLabel('Commit')
+      .setStyle(ButtonStyle.Primary)
+  );
+
+  const reply = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+
+  const collector = reply.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: 60000,
+  });
+
+  collector.on('collect', async i => {
+    if (i.user.id !== interaction.user.id) {
+      await i.reply({ content: 'Only the command author can commit.', ephemeral: true });
+      return;
+    }
+
+    if (i.customId === 'status_commit_btn') {
+      const modal = new ModalBuilder()
+        .setCustomId('status_commit_modal')
+        .setTitle('Create Commit');
+
+      const messageInput = new TextInputBuilder()
+        .setCustomId('commit_message')
+        .setLabel('Commit Message')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
+      const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(messageInput);
+      modal.addComponents(firstActionRow);
+
+      await i.showModal(modal);
+
+      try {
+        const modalSubmit = await i.awaitModalSubmit({
+          filter: m => m.customId === 'status_commit_modal' && m.user.id === interaction.user.id,
+          time: 60000
+        });
+
+        const message = modalSubmit.fields.getTextInputValue('commit_message');
+        await performCommit(modalSubmit, message);
+      } catch (e) {
+        // Modal timeout or error
+      }
+    }
+  });
+
+  collector.on('end', async () => {
+    row.components.forEach(c => c.setDisabled(true));
+    try { await interaction.editReply({ components: [row] }); } catch {}
+  });
 }
 
 function formatSummary(diff: ReturnType<typeof diffCommits>): string {
   const parts: string[] = [];
-  
-  if (diff.added_roles.length) parts.push(`+ ${diff.added_roles.length} role(s)`);
-  if (diff.removed_roles.length) parts.push(`- ${diff.removed_roles.length} role(s)`);
-  if (diff.modified_roles.length) parts.push(`~ ${diff.modified_roles.length} role(s)`);
-  if (diff.added_channels.length) parts.push(`+ ${diff.added_channels.length} channel(s)`);
-  if (diff.removed_channels.length) parts.push(`- ${diff.removed_channels.length} channel(s)`);
-  if (diff.modified_channels.length) parts.push(`~ ${diff.modified_channels.length} channel(s)`);
-  
-  return parts.join(' | ') || 'No changes';
+
+  if (diff.added_roles.length) parts.push(`+ Added ${diff.added_roles.length} role(s)`);
+  if (diff.removed_roles.length) parts.push(`- Removed ${diff.removed_roles.length} role(s)`);
+  if (diff.modified_roles.length) parts.push(`+ Modified ${diff.modified_roles.length} role(s)`);
+  if (diff.added_channels.length) parts.push(`+ Added ${diff.added_channels.length} channel(s)`);
+  if (diff.removed_channels.length) parts.push(`- Removed ${diff.removed_channels.length} channel(s)`);
+  if (diff.modified_channels.length) parts.push(`+ Modified ${diff.modified_channels.length} channel(s)`);
+
+  return parts.join(`\n`) || 'No changes';
 }
 
 function formatDetails(diff: ReturnType<typeof diffCommits>): string {
   const lines: string[] = [];
-  
-  for (const r of diff.added_roles) lines.push(`\`+\` role: ${r.item.name}`);
+
+  for (const r of diff.added_roles) lines.push(`+ role: ${r.item.name}`);
   for (const r of diff.removed_roles) lines.push(`\`-\` role: ${r.item.name}`);
   for (const r of diff.modified_roles) {
     const changes = getRoleChanges(r.previous!, r.item);
-    if (changes.length) lines.push(`\`~\` role: ${r.item.name} (${changes.join(', ')})`);
+    if (changes.length) lines.push(`+role: ${r.item.name} (${changes.join(', ')})`);
   }
-  
-  for (const c of diff.added_channels) lines.push(`\`+\` channel: ${c.item.name} (${getChannelType(c.item.type)})`);
-  for (const c of diff.removed_channels) lines.push(`\`-\` channel: ${c.item.name}`);
+
+  for (const c of diff.added_channels) lines.push(`+ channel: ${c.item.name} (${getChannelType(c.item.type)})`);
+  for (const c of diff.removed_channels) lines.push(`- channel: ${c.item.name}`);
   for (const c of diff.modified_channels) {
     const changes = getChannelChanges(c.previous!, c.item);
-    if (changes.length) lines.push(`\`~\` channel: ${c.item.name} (${changes.join(', ')})`);
+    if (changes.length) lines.push(`+ channel: ${c.item.name} (${changes.join(', ')})`);
   }
-  
+
   if (lines.length === 0) return '';
-  
+
   // Limit to 15 lines to avoid embed limits
   const displayLines = lines.slice(0, 15);
   const suffix = lines.length > 15 ? `\n...and ${lines.length - 15} more` : '';
-  
+
   return `\`\`\`diff\n${displayLines.join('\n')}${suffix}\n\`\`\``;
 }
 
@@ -101,14 +155,14 @@ function getRoleChanges(prev: RoleSnapshot, curr: RoleSnapshot): string[] {
   if (prev.hoist !== curr.hoist) changes.push(`hoist: ${prev.hoist} → ${curr.hoist}`);
   if (prev.mentionable !== curr.mentionable) changes.push(`mentionable: ${prev.mentionable} → ${curr.mentionable}`);
   if (prev.position !== curr.position) changes.push(`position: ${prev.position} → ${curr.position}`);
-  
+
   const prevPerms = new Set(prev.permissions || []);
   const currPerms = new Set(curr.permissions || []);
   const added = [...currPerms].filter(p => !prevPerms.has(p));
   const removed = [...prevPerms].filter(p => !currPerms.has(p));
   if (added.length) changes.push(`perms +${added.join(',')}`);
   if (removed.length) changes.push(`perms -${removed.join(',')}`);
-  
+
   return changes;
 }
 
@@ -123,10 +177,10 @@ function getChannelChanges(prev: ChannelSnapshot, curr: ChannelSnapshot): string
   if (prev.rate_limit_per_user !== curr.rate_limit_per_user) changes.push(`slowmode: ${prev.rate_limit_per_user}s → ${curr.rate_limit_per_user}s`);
   if (prev.position !== curr.position) changes.push(`position: ${prev.position} → ${curr.position}`);
   if (prev.parent_id !== curr.parent_id) changes.push(`parent: ${prev.parent_id || 'none'} → ${curr.parent_id || 'none'}`);
-  
+
   const prevOw = new Map((prev.permission_overwrites || []).map(o => [o.id, o]));
   const currOw = new Map((curr.permission_overwrites || []).map(o => [o.id, o]));
-  
+
   for (const [id, ow] of currOw) {
     if (!prevOw.has(id)) {
       changes.push(`overwrite +${id} (allow: ${ow.allow.join(',')}, deny: ${ow.deny.join(',')})`);
@@ -140,7 +194,7 @@ function getChannelChanges(prev: ChannelSnapshot, curr: ChannelSnapshot): string
   for (const id of prevOw.keys()) {
     if (!currOw.has(id)) changes.push(`overwrite -${id}`);
   }
-  
+
   return changes;
 }
 

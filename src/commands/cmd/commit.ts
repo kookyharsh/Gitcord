@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField, SlashCommandBuilder, RepliableInteraction } from 'discord.js';
 import { snapshotGuild } from '../../snapshotter/index.js';
 import { computeCommitId } from '../../utils/index.js';
 import { insertCommit, findCommit } from '../../storage/commits.js';
@@ -12,16 +12,20 @@ export const data = new SlashCommandBuilder()
   .addStringOption(o => o.setName('message').setDescription('Commit message').setRequired(true));
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
+  const message = interaction.options.getString('message', true);
+  await performCommit(interaction, message);
+}
+
+export async function performCommit(interaction: RepliableInteraction, message: string): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
-  if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
+  if (!("memberPermissions" in interaction) || !(interaction.memberPermissions as Readonly<PermissionsBitField>)?.has(PermissionsBitField.Flags.ManageGuild)) {
     await interaction.editReply({ content: 'You need `MANAGE_GUILD` permission to commit.' });
     return;
   }
 
   const guild = interaction.guild!;
   const server_id = guild.id;
-  const message = interaction.options.getString('message', true);
 
   const snapshot = await snapshotGuild(guild);
   const config = await getConfig(server_id);

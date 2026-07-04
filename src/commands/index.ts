@@ -7,7 +7,6 @@ import * as log from './cmd/log.js';
 import * as diff from './cmd/diff.js';
 import * as preview from './cmd/preview.js';
 import * as rollback from './cmd/rollback.js';
-import * as prune from './cmd/prune.js';
 import * as logsetup from './cmd/logsetup.js';
 import * as gitignore from './cmd/gitignore.js';
 import * as amend from './cmd/amend.js';
@@ -21,7 +20,6 @@ const commandList: Command[] = [
   diff as Command,
   preview as Command,
   rollback as Command,
-  prune as Command,
   logsetup as Command,
   gitignore as Command,
   amend as Command,

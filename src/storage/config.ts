@@ -14,7 +14,7 @@ const DEFAULTS: Omit<GuildConfig, 'server_id'> = {
   protected_channel_ids: [],
   role_whitelist: [],
   retention_days: 90,
-  rollback_cooldown_seconds: 300,
+  rollback_cooldown_seconds: 30,
   ignored_channel_ids: [],
   ignored_role_ids: [],
   ignored_category_ids: [],

@@ -15,11 +15,14 @@ import { buildRestorePlan } from '../../restore/planner.js';
 import { rollbackQueue } from '../../jobs/rollback.js';
 import { insertAuditLog } from '../../storage/audit.js';
 import { logToChannel } from '../../utils/logger.js';
+import { handleCommitSearch } from '../utils/autocomplete/commit-search.js';
 
 export const data = new SlashCommandBuilder()
   .setName('rollback')
   .setDescription('Rollback guild state to a previous commit')
-  .addStringOption(o => o.setName('commit_id').setDescription('Target commit ID').setRequired(true));
+  .addStringOption(o => o.setName('commit_id').setDescription('Target commit ID').setRequired(true).setAutocomplete(true));
+
+export const autocomplete = handleCommitSearch;
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
@@ -68,12 +71,21 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     plan.create_channels.length + plan.update_channels.length +
     plan.reorder_channels.length + plan.delete_ids.length;
 
+  const details = [
+    plan.create_roles.length ? `+ ${plan.create_roles.length} Roles to create` : null,
+    plan.update_roles.length ? `~ ${plan.update_roles.length} Roles to update` : null,
+    plan.create_channels.length ? `+ ${plan.create_channels.length} Channels to create` : null,
+    plan.update_channels.length ? `~ ${plan.update_channels.length} Channels to update` : null,
+    plan.reorder_channels.length ? `🔃 ${plan.reorder_channels.length} Channels to reorder` : null,
+    plan.delete_ids.length ? `- ${plan.delete_ids.length} Items to delete` : null,
+  ].filter(Boolean).join('\n') || 'No changes needed.';
+
   const embed = new EmbedBuilder()
     .setTitle('Confirm Rollback')
     .setColor(0xE74C3C)
     .setDescription(`Roll back to \`${commitId.slice(0, 12)}\`?`)
     .addFields(
-      { name: 'Operations', value: `${totalOps} changes will be applied`, inline: false },
+      { name: 'Operations', value: `${totalOps} changes will be applied\n\`\`\`diff\n${details}\n\`\`\``, inline: false },
       { name: 'Protected Roles Skipped', value: String(config.protected_role_ids.length), inline: true },
       { name: 'Protected Channels Skipped', value: String(config.protected_channel_ids.length), inline: true },
     )
