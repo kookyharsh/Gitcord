@@ -61,6 +61,7 @@ export interface GuildConfig {
   server_id: string;
   head_commit_id: string | null;
   log_channel_id: string | null;
+  status_message_id: string | null;
   protected_role_ids: string[];
   protected_channel_ids: string[];
   role_whitelist: string[];

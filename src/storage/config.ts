@@ -10,6 +10,7 @@ export function initConfig(db: Db): void {
 const DEFAULTS: Omit<GuildConfig, 'server_id'> = {
   head_commit_id: null,
   log_channel_id: null,
+  status_message_id: null,
   protected_role_ids: [],
   protected_channel_ids: [],
   role_whitelist: [],

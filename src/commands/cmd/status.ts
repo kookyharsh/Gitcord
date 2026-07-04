@@ -60,7 +60,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       .setStyle(ButtonStyle.Primary)
   );
 
-  const reply = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+  const reply = await interaction.reply({ embeds: [embed], components: [row] }).then(r => r);
 
   const collector = reply.createMessageComponentCollector({
     componentType: ComponentType.Button,
@@ -69,7 +69,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
   collector.on('collect', async i => {
     if (i.user.id !== interaction.user.id) {
-      await i.reply({ content: 'Only the command author can commit.', ephemeral: true });
+      await i.reply({ content: 'Only the command author can commit.', flags: 1 << 6 });
       return;
     }
 
@@ -109,7 +109,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   });
 }
 
-function formatSummary(diff: ReturnType<typeof diffCommits>): string {
+export function formatSummary(diff: ReturnType<typeof diffCommits>): string {
   const parts: string[] = [];
 
   if (diff.added_roles.length) parts.push(`+ Added ${diff.added_roles.length} role(s)`);
@@ -122,7 +122,7 @@ function formatSummary(diff: ReturnType<typeof diffCommits>): string {
   return parts.join(`\n`) || 'No changes';
 }
 
-function formatDetails(diff: ReturnType<typeof diffCommits>): string {
+export function formatDetails(diff: ReturnType<typeof diffCommits>): string {
   const lines: string[] = [];
 
   for (const r of diff.added_roles) lines.push(`+ role: ${r.item.name}`);

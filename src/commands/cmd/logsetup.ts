@@ -45,4 +45,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
   await channel.send({ embeds: [embed] });
   await interaction.reply({ content: `Log channel created and excluded from snapshots: ${channel}`, ephemeral: true });
+
+  const { updateStickyStatus } = await import('../../jobs/live-status.js');
+  await updateStickyStatus(interaction.client, server_id);
 }

@@ -99,4 +99,7 @@ export async function performCommit(interaction: RepliableInteraction, message: 
       )
       .setTimestamp(),
   );
+
+  const { updateStickyStatus } = await import('../../jobs/live-status.js');
+  await updateStickyStatus(interaction.client, server_id);
 }

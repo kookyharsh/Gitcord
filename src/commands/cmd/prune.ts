@@ -10,7 +10,7 @@ export const data = new SlashCommandBuilder()
   .addIntegerOption(o => o.setName('days').setDescription('Age in days').setRequired(true));
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 1 << 6 });
 
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
     await interaction.editReply({ content: 'You need `MANAGE_GUILD` permission to prune.' });
