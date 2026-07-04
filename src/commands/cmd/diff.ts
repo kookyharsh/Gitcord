@@ -1,7 +1,16 @@
-import { ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
+import { ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, SlashCommandBuilder } from 'discord.js';
 import { findCommit } from '../../storage/commits.js';
 import { diffCommits } from '../../diff/index.js';
 import { PermissionOverwriteSnapshot, ChannelSnapshot, RoleSnapshot } from '../../types/index.js';
+import { handleCommitSearch } from '../utils/autocomplete/commit-search.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('diff')
+  .setDescription('Show diff between two commits')
+  .addStringOption(o => o.setName('commit_a').setDescription('First commit ID').setRequired(true).setAutocomplete(true))
+  .addStringOption(o => o.setName('commit_b').setDescription('Second commit ID').setRequired(true).setAutocomplete(true));
+
+export const autocomplete = handleCommitSearch;
 
 const CHANGES_PER_PAGE = 15;
 
@@ -98,7 +107,7 @@ function getChannelType(type: number): string {
   return types[type] || `unknown(${type})`;
 }
 
-export async function handleDiff(interaction: ChatInputCommandInteraction): Promise<void> {
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
   const commitA = interaction.options.getString('commit_a', true);

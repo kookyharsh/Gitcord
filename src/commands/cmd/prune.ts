@@ -1,10 +1,15 @@
-import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { findCommitsOlderThan, deleteCommits } from '../../storage/commits.js';
 import { getConfig } from '../../storage/config.js';
 import { insertAuditLog } from '../../storage/audit.js';
 import { logToChannel } from '../../utils/logger.js';
 
-export async function handlePrune(interaction: ChatInputCommandInteraction): Promise<void> {
+export const data = new SlashCommandBuilder()
+  .setName('prune')
+  .setDescription('Delete commits older than N days')
+  .addIntegerOption(o => o.setName('days').setDescription('Age in days').setRequired(true));
+
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {

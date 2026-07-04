@@ -1,7 +1,11 @@
-import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField, ChannelType } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField, ChannelType, SlashCommandBuilder } from 'discord.js';
 import { updateConfig, getConfig } from '../../storage/config.js';
 
-export async function handleLogsetup(interaction: ChatInputCommandInteraction): Promise<void> {
+export const data = new SlashCommandBuilder()
+  .setName('logsetup')
+  .setDescription('Auto-create a private channel for audit log messages');
+
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
     await interaction.reply({ content: 'You need `MANAGE_GUILD` permission to set up logging.', ephemeral: true });
     return;

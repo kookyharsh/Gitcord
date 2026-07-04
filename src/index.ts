@@ -1,19 +1,9 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { connect, disconnect } from './storage/mongo.js';
 import { initStorage } from './storage/index.js';
-import { handleStatus } from './commands/cmd/status.js';
-import { handleCommit } from './commands/cmd/commit.js';
-import { handleLog } from './commands/cmd/log.js';
-import { handleDiff } from './commands/cmd/diff.js';
-import { handlePreview } from './commands/cmd/preview.js';
-import { handleRollback } from './commands/cmd/rollback.js';
 import { startRollbackWorker } from './jobs/rollback.js';
-import { handlePrune } from './commands/cmd/prune.js';
-import { handleLogsetup } from './commands/cmd/logsetup.js';
-import { handleGitignore } from './commands/cmd/gitignore.js';
-import { handleCommitSearch } from './commands/utils/autocomplete/commit-search.js';
-import { handleAmend } from './commands/cmd/amend.js';
+import { commands } from './commands/index.js';
 
 const TOKEN = process.env.DISCORD_TOKEN;
 if (!TOKEN) throw new Error('DISCORD_TOKEN is required');
@@ -25,82 +15,7 @@ const client = new Client({
   ],
 });
 
-const commands = [
-  new SlashCommandBuilder()
-    .setName('status')
-    .setDescription('Show current branch, head commit info, and staged changes'),
-  new SlashCommandBuilder()
-    .setName('commit')
-    .setDescription('Snapshot the current guild state')
-    .addStringOption(o => o.setName('message').setDescription('Commit message').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('log')
-    .setDescription('Show commit history')
-    .addIntegerOption(o => o.setName('limit').setDescription('Number of commits').setRequired(false)),
-  new SlashCommandBuilder()
-    .setName('diff')
-    .setDescription('Show diff between two commits')
-    .addStringOption(o => o.setName('commit_a').setDescription('First commit ID').setRequired(true).setAutocomplete(true))
-    .addStringOption(o => o.setName('commit_b').setDescription('Second commit ID').setRequired(true).setAutocomplete(true)),
-  new SlashCommandBuilder()
-    .setName('preview')
-    .setDescription('Preview differences between a commit and live guild')
-    .addStringOption(o => o.setName('commit_id').setDescription('Commit ID').setRequired(true).setAutocomplete(true)),
-  new SlashCommandBuilder()
-    .setName('rollback')
-    .setDescription('Rollback guild state to a previous commit')
-    .addStringOption(o => o.setName('commit_id').setDescription('Target commit ID').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('prune')
-    .setDescription('Delete commits older than N days')
-    .addIntegerOption(o => o.setName('days').setDescription('Age in days').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('logsetup')
-    .setDescription('Auto-create a private channel for audit log messages'),
-  new SlashCommandBuilder()
-    .setName('gitignore')
-    .setDescription('Manage items excluded from snapshots')
-    .addSubcommand(sub => sub
-      .setName('add')
-      .setDescription('Add an item to gitignore')
-      .addChannelOption(o => o.setName('channel').setDescription('Channel to ignore').setRequired(false))
-      .addRoleOption(o => o.setName('role').setDescription('Role to ignore').setRequired(false))
-      .addChannelOption(o => o.setName('category').setDescription('Category to ignore').setRequired(false))
-      .addStringOption(o => o.setName('type').setDescription('Channel type to ignore').setRequired(false)
-        .addChoices(
-          { name: 'text', value: 'text' },
-          { name: 'voice', value: 'voice' },
-          { name: 'category', value: 'category' },
-          { name: 'forum', value: 'forum' },
-          { name: 'announcement', value: 'announcement' },
-          { name: 'stage', value: 'stage' },
-        )))
-    .addSubcommand(sub => sub
-      .setName('remove')
-      .setDescription('Remove an item from gitignore')
-      .addChannelOption(o => o.setName('channel').setDescription('Channel to unignore').setRequired(false))
-      .addRoleOption(o => o.setName('role').setDescription('Role to unignore').setRequired(false))
-      .addChannelOption(o => o.setName('category').setDescription('Category to unignore').setRequired(false))
-      .addStringOption(o => o.setName('type').setDescription('Channel type to unignore').setRequired(false)
-        .addChoices(
-          { name: 'text', value: 'text' },
-          { name: 'voice', value: 'voice' },
-          { name: 'category', value: 'category' },
-          { name: 'forum', value: 'forum' },
-          { name: 'announcement', value: 'announcement' },
-          { name: 'stage', value: 'stage' },
-        )))
-    .addSubcommand(sub => sub
-      .setName('list')
-      .setDescription('Show all ignored items'))
-    .addSubcommand(sub => sub
-      .setName('clear')
-      .setDescription('Remove all ignore rules')),
-  new SlashCommandBuilder()
-    .setName('amend')
-    .setDescription('Amend the most recent commit with new changes')
-    .addStringOption(o => o.setName('message').setDescription('New commit message').setRequired(true)),
-].map(c => c.toJSON());
+const commandDataList = commands.map(c => c.data.toJSON());
 
 client.once('clientReady', async () => {
   console.log(`Logged in as ${client.user?.tag}`);
@@ -111,7 +26,7 @@ client.once('clientReady', async () => {
 
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
-    await rest.put(Routes.applicationCommands(client.user!.id), { body: commands });
+    await rest.put(Routes.applicationCommands(client.user!.id), { body: commandDataList });
     console.log('Slash commands registered');
   } catch (err) {
     console.error('Failed to register commands', err);
@@ -119,44 +34,30 @@ client.once('clientReady', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
-
   if (interaction.isChatInputCommand()) {
-    switch (interaction.commandName) {
-      case 'status':
-        await handleStatus(interaction);
-        break;
-      case 'commit':
-        await handleCommit(interaction);
-        break;
-      case 'log':
-        await handleLog(interaction);
-        break;
-      case 'diff':
-        await handleDiff(interaction);
-        break;
-      case 'preview':
-        await handlePreview(interaction);
-        break;
-      case 'rollback':
-        await handleRollback(interaction);
-        break;
-      case 'prune':
-        await handlePrune(interaction);
-        break;
-      case 'logsetup':
-        await handleLogsetup(interaction);
-        break;
-      case 'gitignore':
-        await handleGitignore(interaction);
-       
-        break;
-      case 'amend':
-        await handleAmend(interaction);
-        break;
+    const command = commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(error);
+      const reply = { content: 'There was an error while executing this command!', ephemeral: true };
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(reply);
+      } else {
+        await interaction.reply(reply);
+      }
     }
   } else if (interaction.isAutocomplete()) {
-    await handleCommitSearch(interaction);
+    const command = commands.get(interaction.commandName);
+    if (!command || !command.autocomplete) return;
+
+    try {
+      await command.autocomplete(interaction);
+    } catch (error) {
+      console.error(error);
+    }
   }
 });
 

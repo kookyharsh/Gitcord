@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   PermissionsBitField,
   ComponentType,
+  SlashCommandBuilder,
 } from 'discord.js';
 import { findCommit } from '../../storage/commits.js';
 import { getConfig } from '../../storage/config.js';
@@ -15,7 +16,12 @@ import { rollbackQueue } from '../../jobs/rollback.js';
 import { insertAuditLog } from '../../storage/audit.js';
 import { logToChannel } from '../../utils/logger.js';
 
-export async function handleRollback(interaction: ChatInputCommandInteraction): Promise<void> {
+export const data = new SlashCommandBuilder()
+  .setName('rollback')
+  .setDescription('Rollback guild state to a previous commit')
+  .addStringOption(o => o.setName('commit_id').setDescription('Target commit ID').setRequired(true));
+
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
     await interaction.reply({ content: 'You need `MANAGE_GUILD` permission to rollback.', ephemeral: true });
     return;

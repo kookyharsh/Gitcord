@@ -5,10 +5,51 @@ import {
   ChannelType,
   Channel,
   Role,
+  SlashCommandBuilder,
 } from 'discord.js';
 import { getConfig, updateConfig } from '../../storage/config.js';
 import { GuildConfig } from '../../types/index.js';
 import { logToChannel } from '../../utils/logger.js';
+
+export const data = new SlashCommandBuilder()
+  .setName('gitignore')
+  .setDescription('Manage items excluded from snapshots')
+  .addSubcommand(sub => sub
+    .setName('add')
+    .setDescription('Add an item to gitignore')
+    .addChannelOption(o => o.setName('channel').setDescription('Channel to ignore').setRequired(false))
+    .addRoleOption(o => o.setName('role').setDescription('Role to ignore').setRequired(false))
+    .addChannelOption(o => o.setName('category').setDescription('Category to ignore').setRequired(false))
+    .addStringOption(o => o.setName('type').setDescription('Channel type to ignore').setRequired(false)
+      .addChoices(
+        { name: 'text', value: 'text' },
+        { name: 'voice', value: 'voice' },
+        { name: 'category', value: 'category' },
+        { name: 'forum', value: 'forum' },
+        { name: 'announcement', value: 'announcement' },
+        { name: 'stage', value: 'stage' },
+      )))
+  .addSubcommand(sub => sub
+    .setName('remove')
+    .setDescription('Remove an item from gitignore')
+    .addChannelOption(o => o.setName('channel').setDescription('Channel to unignore').setRequired(false))
+    .addRoleOption(o => o.setName('role').setDescription('Role to unignore').setRequired(false))
+    .addChannelOption(o => o.setName('category').setDescription('Category to unignore').setRequired(false))
+    .addStringOption(o => o.setName('type').setDescription('Channel type to unignore').setRequired(false)
+      .addChoices(
+        { name: 'text', value: 'text' },
+        { name: 'voice', value: 'voice' },
+        { name: 'category', value: 'category' },
+        { name: 'forum', value: 'forum' },
+        { name: 'announcement', value: 'announcement' },
+        { name: 'stage', value: 'stage' },
+      )))
+  .addSubcommand(sub => sub
+    .setName('list')
+    .setDescription('Show all ignored items'))
+  .addSubcommand(sub => sub
+    .setName('clear')
+    .setDescription('Remove all ignore rules'));
 
 const CHANNEL_TYPE_MAP: Record<string, number> = {
   text: ChannelType.GuildText,
@@ -24,7 +65,7 @@ for (const [name, id] of Object.entries(CHANNEL_TYPE_MAP)) {
   CHANNEL_TYPES_BY_NAME[id] = name;
 }
 
-export async function handleGitignore(interaction: ChatInputCommandInteraction): Promise<void> {
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
     await interaction.reply({ content: 'You need `MANAGE_GUILD` permission.', ephemeral: true });
     return;

@@ -1,9 +1,17 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { findCommit } from '../../storage/commits.js';
 import { snapshotGuild } from '../../snapshotter/index.js';
 import { diffCommits } from '../../diff/index.js';
+import { handleCommitSearch } from '../utils/autocomplete/commit-search.js';
 
-export async function handlePreview(interaction: ChatInputCommandInteraction): Promise<void> {
+export const data = new SlashCommandBuilder()
+  .setName('preview')
+  .setDescription('Preview differences between a commit and live guild')
+  .addStringOption(o => o.setName('commit_id').setDescription('Commit ID').setRequired(true).setAutocomplete(true));
+
+export const autocomplete = handleCommitSearch;
+
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
   const commitId = interaction.options.getString('commit_id', true);

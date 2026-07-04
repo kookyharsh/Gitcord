@@ -1,7 +1,12 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { listCommits, countCommits } from '../../storage/commits.js';
 
-export async function handleLog(interaction: ChatInputCommandInteraction): Promise<void> {
+export const data = new SlashCommandBuilder()
+  .setName('log')
+  .setDescription('Show commit history')
+  .addIntegerOption(o => o.setName('limit').setDescription('Number of commits').setRequired(false));
+
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
   const server_id = interaction.guildId!;

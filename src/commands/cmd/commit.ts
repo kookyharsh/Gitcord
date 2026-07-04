@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { snapshotGuild } from '../../snapshotter/index.js';
 import { computeCommitId } from '../../utils/index.js';
 import { insertCommit, findCommit } from '../../storage/commits.js';
@@ -6,7 +6,12 @@ import { getConfig, updateConfig } from '../../storage/config.js';
 import { insertAuditLog } from '../../storage/audit.js';
 import { logToChannel } from '../../utils/logger.js';
 
-export async function handleCommit(interaction: ChatInputCommandInteraction): Promise<void> {
+export const data = new SlashCommandBuilder()
+  .setName('commit')
+  .setDescription('Snapshot the current guild state')
+  .addStringOption(o => o.setName('message').setDescription('Commit message').setRequired(true));
+
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
 
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
