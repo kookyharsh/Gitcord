@@ -22,11 +22,23 @@ export async function updateStickyStatus(client: Client, guild_id: string) {
   const config = await getConfig(guild_id);
   if (!config.log_channel_id) return;
 
-  const guild = client.guilds.cache.get(guild_id);
-  if (!guild) return;
+  let guild = client.guilds.cache.get(guild_id);
+  if (!guild) {
+    try {
+      guild = await client.guilds.fetch(guild_id);
+    } catch {
+      return;
+    }
+  }
 
-  const channel = guild.channels.cache.get(config.log_channel_id) as TextChannel;
-  if (!channel) return;
+  let channel = guild.channels.cache.get(config.log_channel_id) as TextChannel;
+  if (!channel) {
+    try {
+      channel = await guild.channels.fetch(config.log_channel_id) as TextChannel;
+    } catch {
+      return;
+    }
+  }
 
   const live = await snapshotGuild(guild);
   let summary = 'No changes';
