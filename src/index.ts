@@ -12,6 +12,7 @@ import { startRollbackWorker } from './jobs/rollback.js';
 import { handlePrune } from './commands/prune.js';
 import { handleLogsetup } from './commands/logsetup.js';
 import { handleGitignore } from './commands/gitignore.js';
+import { handleCommitSearch } from './autocomplete/commit-search.js';
 
 const TOKEN = process.env.DISCORD_TOKEN;
 if (!TOKEN) throw new Error('DISCORD_TOKEN is required');
@@ -38,8 +39,8 @@ const commands = [
   new SlashCommandBuilder()
     .setName('diff')
     .setDescription('Show diff between two commits')
-    .addStringOption(o => o.setName('commit_a').setDescription('First commit ID').setRequired(true))
-    .addStringOption(o => o.setName('commit_b').setDescription('Second commit ID').setRequired(true)),
+    .addStringOption(o => o.setName('commit_a').setDescription('First commit ID').setRequired(true).setAutocomplete(true))
+    .addStringOption(o => o.setName('commit_b').setDescription('Second commit ID').setRequired(true).setAutocomplete(true)),
   new SlashCommandBuilder()
     .setName('preview')
     .setDescription('Preview differences between a commit and live guild')
@@ -113,36 +114,40 @@ client.once('clientReady', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
 
-  switch (interaction.commandName) {
-    case 'status':
-      await handleStatus(interaction);
-      break;
-    case 'commit':
-      await handleCommit(interaction);
-      break;
-    case 'log':
-      await handleLog(interaction);
-      break;
-    case 'diff':
-      await handleDiff(interaction);
-      break;
-    case 'preview':
-      await handlePreview(interaction);
-      break;
-    case 'rollback':
-      await handleRollback(interaction);
-      break;
-    case 'prune':
-      await handlePrune(interaction);
-      break;
-    case 'logsetup':
-      await handleLogsetup(interaction);
-      break;
-    case 'gitignore':
-      await handleGitignore(interaction);
-      break;
+  if (interaction.isChatInputCommand()) {
+    switch (interaction.commandName) {
+      case 'status':
+        await handleStatus(interaction);
+        break;
+      case 'commit':
+        await handleCommit(interaction);
+        break;
+      case 'log':
+        await handleLog(interaction);
+        break;
+      case 'diff':
+        await handleDiff(interaction);
+        break;
+      case 'preview':
+        await handlePreview(interaction);
+        break;
+      case 'rollback':
+        await handleRollback(interaction);
+        break;
+      case 'prune':
+        await handlePrune(interaction);
+        break;
+      case 'logsetup':
+        await handleLogsetup(interaction);
+        break;
+      case 'gitignore':
+        await handleGitignore(interaction);
+        break;
+    }
+  } else if (interaction.isAutocomplete()) {
+    await handleCommitSearch(interaction);
   }
 });
 
