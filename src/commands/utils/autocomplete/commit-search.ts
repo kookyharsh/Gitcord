@@ -1,5 +1,5 @@
 import { AutocompleteInteraction } from 'discord.js';
-import { listCommits } from '../storage/commits.js';
+import { listCommits } from '../../../storage/commits.js';
 
 export async function handleCommitSearch(interaction: AutocompleteInteraction): Promise<void> {
   const server_id = interaction.guildId!;

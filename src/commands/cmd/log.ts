@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { listCommits, countCommits } from '../storage/commits.js';
+import { listCommits, countCommits } from '../../storage/commits.js';
 
 export async function handleLog(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
@@ -25,8 +25,13 @@ export async function handleLog(interaction: ChatInputCommandInteraction): Promi
     const date = new Date(c.timestamp).toLocaleString();
     embed.addFields({
       name: `${shortId} — ${c.message}`,
-      value: `by ${c.author_tag} · ${c.meta.channel_count}📁 ${c.meta.role_count}👤 · ${date}`,
+      value: `by ${c.author_tag} at ${date}`,
+      inline: false,
     });
+    embed.addFields(
+      { name: 'Channels', value: String(c.meta.channel_count), inline: true },
+      { name: 'Roles', value: String(c.meta.role_count), inline: true },
+    );
   }
 
   await interaction.editReply({ embeds: [embed] });

@@ -7,13 +7,13 @@ import {
   PermissionsBitField,
   ComponentType,
 } from 'discord.js';
-import { findCommit } from '../storage/commits.js';
-import { getConfig } from '../storage/config.js';
-import { snapshotGuild } from '../snapshotter/index.js';
-import { buildRestorePlan } from '../restore/planner.js';
-import { rollbackQueue } from '../jobs/rollback.js';
-import { insertAuditLog } from '../storage/audit.js';
-import { logToChannel } from '../utils/logger.js';
+import { findCommit } from '../../storage/commits.js';
+import { getConfig } from '../../storage/config.js';
+import { snapshotGuild } from '../../snapshotter/index.js';
+import { buildRestorePlan } from '../../restore/planner.js';
+import { rollbackQueue } from '../../jobs/rollback.js';
+import { insertAuditLog } from '../../storage/audit.js';
+import { logToChannel } from '../../utils/logger.js';
 
 export async function handleRollback(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
@@ -158,7 +158,7 @@ export async function handleRollback(interaction: ChatInputCommandInteraction): 
 }
 
 async function getLastRollback(server_id: string) {
-  const { listAuditLogs } = await import('../storage/audit.js');
+  const { listAuditLogs } = await import('../../storage/audit.js');
   const logs = await listAuditLogs(server_id, 5);
-  return logs.find(l => l.command === 'rollback' && l.result === 'success') ?? null;
+  return logs.find((l: any) => l.command === 'rollback' && l.result === 'success') ?? null;
 }

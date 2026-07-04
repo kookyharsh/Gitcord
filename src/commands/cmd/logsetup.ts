@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField, ChannelType } from 'discord.js';
-import { updateConfig, getConfig } from '../storage/config.js';
+import { updateConfig, getConfig } from '../../storage/config.js';
 
 export async function handleLogsetup(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {

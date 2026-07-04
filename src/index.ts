@@ -2,17 +2,18 @@ import 'dotenv/config';
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import { connect, disconnect } from './storage/mongo.js';
 import { initStorage } from './storage/index.js';
-import { handleStatus } from './commands/status.js';
-import { handleCommit } from './commands/commit.js';
-import { handleLog } from './commands/log.js';
-import { handleDiff } from './commands/diff.js';
-import { handlePreview } from './commands/preview.js';
-import { handleRollback } from './commands/rollback.js';
+import { handleStatus } from './commands/cmd/status.js';
+import { handleCommit } from './commands/cmd/commit.js';
+import { handleLog } from './commands/cmd/log.js';
+import { handleDiff } from './commands/cmd/diff.js';
+import { handlePreview } from './commands/cmd/preview.js';
+import { handleRollback } from './commands/cmd/rollback.js';
 import { startRollbackWorker } from './jobs/rollback.js';
-import { handlePrune } from './commands/prune.js';
-import { handleLogsetup } from './commands/logsetup.js';
-import { handleGitignore } from './commands/gitignore.js';
-import { handleCommitSearch } from './autocomplete/commit-search.js';
+import { handlePrune } from './commands/cmd/prune.js';
+import { handleLogsetup } from './commands/cmd/logsetup.js';
+import { handleGitignore } from './commands/cmd/gitignore.js';
+import { handleCommitSearch } from './commands/utils/autocomplete/commit-search.js';
+import { handleAmend } from './commands/cmd/amend.js';
 
 const TOKEN = process.env.DISCORD_TOKEN;
 if (!TOKEN) throw new Error('DISCORD_TOKEN is required');
@@ -27,7 +28,7 @@ const client = new Client({
 const commands = [
   new SlashCommandBuilder()
     .setName('status')
-    .setDescription('Show current branch and head commit info'),
+    .setDescription('Show current branch, head commit info, and staged changes'),
   new SlashCommandBuilder()
     .setName('commit')
     .setDescription('Snapshot the current guild state')
@@ -44,7 +45,7 @@ const commands = [
   new SlashCommandBuilder()
     .setName('preview')
     .setDescription('Preview differences between a commit and live guild')
-    .addStringOption(o => o.setName('commit_id').setDescription('Commit ID').setRequired(true)),
+    .addStringOption(o => o.setName('commit_id').setDescription('Commit ID').setRequired(true).setAutocomplete(true)),
   new SlashCommandBuilder()
     .setName('rollback')
     .setDescription('Rollback guild state to a previous commit')
@@ -95,6 +96,10 @@ const commands = [
     .addSubcommand(sub => sub
       .setName('clear')
       .setDescription('Remove all ignore rules')),
+  new SlashCommandBuilder()
+    .setName('amend')
+    .setDescription('Amend the most recent commit with new changes')
+    .addStringOption(o => o.setName('message').setDescription('New commit message').setRequired(true)),
 ].map(c => c.toJSON());
 
 client.once('clientReady', async () => {
@@ -144,6 +149,10 @@ client.on('interactionCreate', async interaction => {
         break;
       case 'gitignore':
         await handleGitignore(interaction);
+       
+        break;
+      case 'amend':
+        await handleAmend(interaction);
         break;
     }
   } else if (interaction.isAutocomplete()) {

@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
-import { findCommit } from '../storage/commits.js';
-import { diffCommits } from '../diff/index.js';
-import { PermissionOverwriteSnapshot, ChannelSnapshot, RoleSnapshot } from '../types/index.js';
+import { findCommit } from '../../storage/commits.js';
+import { diffCommits } from '../../diff/index.js';
+import { PermissionOverwriteSnapshot, ChannelSnapshot, RoleSnapshot } from '../../types/index.js';
 
 const CHANGES_PER_PAGE = 15;
 

@@ -1,8 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { findCommit } from '../storage/commits.js';
-import { snapshotGuild } from '../snapshotter/index.js';
-import { diffCommits } from '../diff/index.js';
-import { logToChannel } from '../utils/logger.js';
+import { findCommit } from '../../storage/commits.js';
+import { snapshotGuild } from '../../snapshotter/index.js';
+import { diffCommits } from '../../diff/index.js';
 
 export async function handlePreview(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
@@ -44,18 +43,6 @@ export async function handlePreview(interaction: ChatInputCommandInteraction): P
   }
 
   await interaction.editReply({ embeds: [embed] });
-
-  await logToChannel(interaction.client, interaction.guildId!,
-    new EmbedBuilder()
-      .setTitle('👁️ Preview Viewed')
-      .setColor(0x9B59B6)
-      .setDescription(`\`${commitId.slice(0, 12)}\` vs Live by ${interaction.user.tag}`)
-      .addFields(
-        { name: 'Roles', value: formatPreviewCounts(diff.added_roles.length, diff.removed_roles.length, diff.modified_roles.length), inline: true },
-        { name: 'Channels', value: formatPreviewCounts(diff.added_channels.length, diff.removed_channels.length, diff.modified_channels.length), inline: true },
-      )
-      .setTimestamp(),
-  );
 }
 
 function formatPreviewCounts(added: number, removed: number, modified: number): string {

@@ -6,9 +6,9 @@ import {
   Channel,
   Role,
 } from 'discord.js';
-import { getConfig, updateConfig } from '../storage/config.js';
-import { GuildConfig } from '../types/index.js';
-import { logToChannel } from '../utils/logger.js';
+import { getConfig, updateConfig } from '../../storage/config.js';
+import { GuildConfig } from '../../types/index.js';
+import { logToChannel } from '../../utils/logger.js';
 
 const CHANNEL_TYPE_MAP: Record<string, number> = {
   text: ChannelType.GuildText,

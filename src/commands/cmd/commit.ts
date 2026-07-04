@@ -1,10 +1,10 @@
 import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField } from 'discord.js';
-import { snapshotGuild } from '../snapshotter/index.js';
-import { computeCommitId } from '../utils/index.js';
-import { insertCommit, findCommit } from '../storage/commits.js';
-import { getConfig, updateConfig } from '../storage/config.js';
-import { insertAuditLog } from '../storage/audit.js';
-import { logToChannel } from '../utils/logger.js';
+import { snapshotGuild } from '../../snapshotter/index.js';
+import { computeCommitId } from '../../utils/index.js';
+import { insertCommit, findCommit } from '../../storage/commits.js';
+import { getConfig, updateConfig } from '../../storage/config.js';
+import { insertAuditLog } from '../../storage/audit.js';
+import { logToChannel } from '../../utils/logger.js';
 
 export async function handleCommit(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
